@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123h";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123h";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123h";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123i";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123i";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123i";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
