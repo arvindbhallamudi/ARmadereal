@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123f";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123f";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123f";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123g";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123g";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123g";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
@@ -209,41 +209,7 @@ function layout() {
     c.glow.position.copy(c.mesh.position).multiplyScalar(1.05);
     c.node.position.copy(c.mesh.position);
   });
-  placeSignposts();
   buildPath();
-}
-
-/* ---------------- chapter signposts above the first card of each chapter ---------------- */
-const signposts = CHAPTERS.map((ch, ci) => {
-  const c = document.createElement("canvas");
-  c.width = 768; c.height = 128;
-  const x = c.getContext("2d");
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, opacity: 0 }));
-  sprite.scale.set(1.5, 0.25, 1);
-  sprite.renderOrder = 4;
-  sprite.visible = false;
-  world.add(sprite);
-  const draw = () => {
-    x.clearRect(0, 0, 768, 128);
-    x.font = `500 52px Ubuntu, "Segoe UI", sans-serif`;
-    x.textAlign = "center"; x.textBaseline = "middle";
-    const label = `${String(ci + 1).padStart(2, "0")}  ${ch.title.toUpperCase()}`;
-    const w = x.measureText(label).width + 64;
-    x.fillStyle = "rgba(11,21,48,0.72)";
-    x.beginPath(); x.roundRect ? x.roundRect(384 - w / 2, 18, w, 92, 46) : x.rect(384 - w / 2, 18, w, 92); x.fill();
-    x.fillStyle = "#12ABDB";
-    x.fillText(label, 384, 66);
-    t.needsUpdate = true;
-  };
-  return { ch, ci, sprite, draw };
-});
-function placeSignposts() {
-  signposts.forEach((sp) => {
-    sp.card = cards.find((c) => !c.mine && c.chapterIdx === sp.ci);
-    if (sp.card) sp.sprite.position.set(sp.card.mesh.position.x, sp.card.baseY + 0.98, sp.card.mesh.position.z);
-  });
 }
 
 /* ---------------- the path of light ---------------- */
@@ -295,7 +261,6 @@ layout();
 (async () => {
   try { await Promise.all(["300 40px Ubuntu", "500 28px Ubuntu"].map((f) => document.fonts.load(f))); } catch {}
   cards.forEach(drawCard);
-  signposts.forEach((sp) => sp.draw());
   allStories().forEach(loadAvatar);
 })();
 
@@ -331,10 +296,10 @@ function applyVeil() {
   const v = VEILS[veil];
   document.documentElement.style.setProperty("--veil", v.tint);
   document.documentElement.style.setProperty("--veil-blur", v.blur + "px");
-  $("#btn-veil").textContent = `Layer: ${v.name}`;
   $("#btn-veil").setAttribute("aria-label", `Camera background: ${v.name}. Tap to change`);
+  $("#btn-veil").title = `Background: ${v.name}`;
 }
-$("#btn-veil")?.addEventListener("click", () => { veil = (veil + 1) % VEILS.length; store.set("veil", veil); applyVeil(); });
+$("#btn-veil")?.addEventListener("click", () => { veil = (veil + 1) % VEILS.length; store.set("veil", veil); applyVeil(); toast(`Background: ${VEILS[veil].name}`); });
 
 /* ---------------- orientation controls ---------------- */
 const orient = { alpha: 0, beta: 90, gamma: 0, has: false };
@@ -500,9 +465,7 @@ function revealChapter(ci, stagger = true) {
 
 function updateChip() {
   const ci = Math.max(0, state.chapterIndex);
-  $("#chip-num").textContent = `Chapter ${ci + 1} of ${CHAPTERS.length}`;
-  $("#chip-title").textContent = CHAPTERS[ci].title;
-  $("#btn-chapters").hidden = !state.started;
+  $("#btn-chapters").setAttribute("aria-label", `Chapters. You are in chapter ${ci + 1} of ${CHAPTERS.length}, ${CHAPTERS[ci].title}`);
 }
 
 async function showChapter(ci) {
@@ -964,14 +927,6 @@ function frame() {
       // undiscovered stops on the map: small beacons along the dim path
       c.node.visible = true;
       c.node.material.opacity = 0.35 + (reduceMotion ? 0 : Math.sin(t * 1.5 + c.index) * 0.15);
-    }
-  }
-
-  for (const sp of signposts) {
-    sp.sprite.visible = !!sp.card && sp.card.mesh.visible;
-    if (sp.sprite.visible) {
-      sp.sprite.material.opacity = Math.min(1, sp.card.reveal * 1.2);
-      sp.sprite.position.y = sp.card.mesh.position.y + 0.98;
     }
   }
 

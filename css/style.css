@@ -122,6 +122,8 @@ body.has-logo .brand-fallback { display: none; }
   background: linear-gradient(180deg, rgba(5,10,26,.55), transparent);
 }
 .hud-brand { display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 16px; min-width: 0; }
+.hud-right { display: flex; align-items: center; gap: 8px; }
+.veil-btn { width: 40px; height: 40px; color: var(--ink); }
 .hud-logo { height: 20px; width: auto; }
 body.has-logo .hud-brand span { font-weight: 300; }
 .collect-btn {
@@ -170,18 +172,6 @@ body.has-logo .hud-brand span { font-weight: 300; }
 .guide.right .guide-arrow { transform: rotate(-135deg); margin: 0 4px 0 0; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(18,171,219,.6);} 70% { box-shadow: 0 0 0 18px rgba(18,171,219,0);} 100% { box-shadow: 0 0 0 0 rgba(18,171,219,0);} }
 
-/* current chapter chip, opens the chapters sheet */
-.chapter-chip {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  top: calc(max(12px, env(safe-area-inset-top)) + 52px);
-  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
-  border-radius: 999px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--ink);
-  font-size: 13px; cursor: pointer; white-space: nowrap; max-width: calc(100% - 32px);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-}
-#chip-num { color: var(--ink-mute); }
-#chip-title { font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
-.chip-caret { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); opacity: .7; }
 
 /* chapters sheet */
 .ch-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
