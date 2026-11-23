@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0b1530" />
+  <title>#MadeRealHere — Capgemini</title>
+  <meta name="description" content="An augmented reality experience sharing the stories of the people who make it real at Capgemini." />
+  <meta property="og:title" content="#MadeRealHere" />
+  <meta property="og:description" content="Step into the stories of the people who make it real." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <!-- Camera feed (AR mode) sits behind the 3D canvas -->
+  <video id="camera" playsinline muted autoplay></video>
+  <div id="virtual-bg" aria-hidden="true"></div>
+  <canvas id="scene" aria-label="Augmented reality story space"></canvas>
+
+  <!-- ============ INTRO ============ -->
+  <section id="intro" class="screen is-active">
+    <div class="intro-inner">
+      <p class="eyebrow">Capgemini presents</p>
+      <h1 class="hashtag"><span>#Made</span><span>Real</span><span>Here</span></h1>
+      <p class="lede" id="tagline"></p>
+      <button id="start-ar" class="btn btn-primary">Start the experience</button>
+      <button id="start-virtual" class="btn btn-ghost">Continue without camera</button>
+      <p class="fineprint">Uses your camera and motion sensors to place stories around you. Nothing is recorded or stored.</p>
+    </div>
+  </section>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" hidden>
+    <header class="hud-top">
+      <div class="hud-brand">#MadeRealHere</div>
+      <div class="hud-progress" aria-live="polite">
+        <span id="progress-text">0 / 6</span>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+      </div>
+      <button id="btn-list" class="icon-btn" aria-label="All stories">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <div id="narration" aria-live="polite"></div>
+
+    <div id="chapter-banner" aria-live="polite">
+      <div class="chapter-num"></div>
+      <div class="chapter-title"></div>
+      <div class="chapter-intro"></div>
+    </div>
+
+    <div id="guide-left" class="guide" aria-hidden="true"><span>‹</span></div>
+    <div id="guide-right" class="guide" aria-hidden="true"><span>›</span></div>
+    <div id="hint" class="hint"></div>
+
+    <footer class="hud-bottom">
+      <button id="btn-recenter" class="pill-btn">Recenter</button>
+    </footer>
+  </div>
+
+  <!-- ============ STORY PANEL ============ -->
+  <section id="story" class="sheet" role="dialog" aria-modal="true" aria-labelledby="story-name" hidden>
+    <div class="sheet-scrim" data-close></div>
+    <article class="sheet-card">
+      <button class="sheet-close icon-btn" data-close aria-label="Close story">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="story-head">
+        <div class="story-photo" id="story-photo"></div>
+        <div>
+          <div class="story-chapter" id="story-chapter"></div>
+          <h2 id="story-name"></h2>
+          <p class="story-role" id="story-role"></p>
+          <p class="story-meta" id="story-meta"></p>
+        </div>
+      </div>
+      <span class="placeholder-tag" id="story-placeholder">Placeholder content</span>
+      <blockquote id="story-quote"></blockquote>
+      <div id="story-body" class="story-body"></div>
+      <button class="btn btn-primary btn-block" data-close id="story-continue">Continue the journey</button>
+    </article>
+  </section>
+
+  <!-- ============ STORY LIST ============ -->
+  <section id="list" class="sheet" role="dialog" aria-modal="true" aria-label="All stories" hidden>
+    <div class="sheet-scrim" data-close></div>
+    <article class="sheet-card">
+      <button class="sheet-close icon-btn" data-close aria-label="Close list">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <h2>All stories</h2>
+      <div id="list-body"></div>
+    </article>
+  </section>
+
+  <!-- ============ FINALE ============ -->
+  <section id="finale" class="screen">
+    <div class="intro-inner">
+      <h1 class="hashtag small"><span>#Made</span><span>Real</span><span>Here</span></h1>
+      <h2 id="finale-title"></h2>
+      <p class="lede" id="finale-body"></p>
+      <a id="finale-primary" class="btn btn-primary" target="_blank" rel="noopener"></a>
+      <a id="finale-secondary" class="btn btn-ghost" target="_blank" rel="noopener"></a>
+      <button id="finale-replay" class="btn btn-link">Look around again</button>
+    </div>
+  </section>
+
+  <div id="toast" role="status"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
