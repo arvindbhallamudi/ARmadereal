@@ -39,8 +39,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 #veil {
   pointer-events: none; opacity: 0; transition: opacity .6s, background .4s;
   background:
-    radial-gradient(ellipse at 50% 45%, rgba(11,21,48, calc(var(--veil) * .75)), rgba(11,21,48, var(--veil)) 70%),
-    linear-gradient(180deg, rgba(0,112,173,.18), rgba(43,10,61,.18));
+    radial-gradient(ellipse at 50% 40%, rgba(0,112,173, calc(var(--veil) * .7)), rgba(11,21,48, var(--veil)) 75%),
+    radial-gradient(900px 600px at 15% 10%, rgba(18,171,219, calc(var(--veil) * .5)), transparent 60%);
 }
 body.ar-live #veil { opacity: 1; }
 #virtual-bg {
@@ -133,7 +133,7 @@ body.has-logo .hud-brand span { font-weight: 300; }
 .collect-btn {
   display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
   border-radius: 999px; border: 1px solid var(--glass-line); background: var(--glass);
-  font-size: 14px; cursor: pointer; font-variant-numeric: tabular-nums;
+  font-size: 14px; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--ink);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
 .progress-bar { width: 56px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.2); overflow: hidden; display: block; }
@@ -188,6 +188,7 @@ body.has-logo .hud-brand span { font-weight: 300; }
   padding: 12px max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
 }
+@media (max-width: 420px) { .hud-bottom { gap: 6px; } .hud-bottom .pill-btn { padding: 0 13px; font-size: 13.5px; } }
 
 /* ---------- sheets ---------- */
 .sheet { position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; }

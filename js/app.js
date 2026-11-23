@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123d";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123d";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123d";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
@@ -288,18 +288,19 @@ async function startCamera() {
 }
 
 const VEILS = [
-  { name: "Clear", tint: 0.12, blur: 0 },
-  { name: "Soft", tint: 0.45, blur: 1.5 },
-  { name: "Focus", tint: 0.7, blur: 6 },
+  { name: "Clear", tint: 0.2, blur: 0 },
+  { name: "Soft", tint: 0.55, blur: 1.5 },
+  { name: "Focus", tint: 0.8, blur: 6 },
 ];
 let veil = Math.min(store.get("veil", 1), VEILS.length - 1);
 function applyVeil() {
   const v = VEILS[veil];
   document.documentElement.style.setProperty("--veil", v.tint);
   document.documentElement.style.setProperty("--veil-blur", v.blur + "px");
-  $("#btn-veil").textContent = `Background: ${v.name}`;
+  $("#btn-veil").textContent = `Layer: ${v.name}`;
+  $("#btn-veil").setAttribute("aria-label", `Camera background: ${v.name}. Tap to change`);
 }
-$("#btn-veil").addEventListener("click", () => { veil = (veil + 1) % VEILS.length; store.set("veil", veil); applyVeil(); });
+$("#btn-veil")?.addEventListener("click", () => { veil = (veil + 1) % VEILS.length; store.set("veil", veil); applyVeil(); });
 
 /* ---------------- orientation controls ---------------- */
 const orient = { alpha: 0, beta: 90, gamma: 0, has: false };
@@ -393,7 +394,7 @@ function turnTo(card, animate = true) {
     if (!animate) { look.yaw = look.tYaw; look.pitch = 0; }
   }
 }
-$("#btn-recenter").addEventListener("click", () => {
+$("#btn-recenter")?.addEventListener("click", () => {
   const n = nextCard() || [...cards].reverse().find((c) => c.mesh.visible);
   turnTo(n);
 });
@@ -423,7 +424,7 @@ function updateGuides() {
   g.classList.toggle("right", side === "right");
   if (side) $("#guide-label").textContent = `${side === "left" ? "Turn left" : "Turn right"} · ${firstName(target.story.name)}`;
 }
-$("#guide").addEventListener("click", () => turnTo(nextCard()));
+$("#guide")?.addEventListener("click", () => turnTo(nextCard()));
 
 /* ---------------- narrative ---------------- */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -504,7 +505,15 @@ async function begin(mode) {
   if (deep) openStory(deep);
 }
 
-$("#start-ar").addEventListener("click", async (e) => {
+const IS_PHONE = matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
+  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); // iPadOS
+if (!IS_PHONE) {
+  // a laptop webcam faces the viewer, so AR makes no sense there: go straight to the virtual space
+  $("#start-virtual").hidden = true;
+  $("#ar-note").hidden = true;
+}
+$("#start-ar")?.addEventListener("click", async (e) => {
+  if (!IS_PHONE) { startOrientation(); begin("virtual"); return; }
   e.currentTarget.disabled = true;
   e.currentTarget.textContent = "Starting…";
   // both permission prompts must start inside the tap (iOS)
@@ -512,7 +521,7 @@ $("#start-ar").addEventListener("click", async (e) => {
   if (!camOk) toast("Camera not available, showing the virtual space instead");
   begin(camOk ? "ar" : "virtual");
 });
-$("#start-virtual").addEventListener("click", async () => { await startOrientation(); begin("virtual"); });
+$("#start-virtual")?.addEventListener("click", async () => { await startOrientation(); begin("virtual"); });
 
 /* ---------------- story sheet ---------------- */
 let openCard = null, lastFocus = null;
@@ -603,9 +612,9 @@ async function shareCard(story, isMine) {
   try { await navigator.clipboard.writeText(`${text} ${url}`); toast("Link copied"); }
   catch { toast(url); }
 }
-$("#story-share").addEventListener("click", () => openCard && shareCard(openCard.story, openCard.mine));
-$("#story-save").addEventListener("click", () => openCard && saveCard(openCard.story));
-$("#story-delete").addEventListener("click", () => {
+$("#story-share")?.addEventListener("click", () => openCard && shareCard(openCard.story, openCard.mine));
+$("#story-save")?.addEventListener("click", () => openCard && saveCard(openCard.story));
+$("#story-delete")?.addEventListener("click", () => {
   const card = openCard;
   if (!card?.mine) return;
   const btn = $("#story-delete");
@@ -655,7 +664,7 @@ function openCollection() {
   $("#collection").hidden = false;
   $("#collection .sheet-close").focus();
 }
-$("#btn-collection").addEventListener("click", openCollection);
+$("#btn-collection")?.addEventListener("click", openCollection);
 
 /* ---------------- add your own story ---------------- */
 const draft = {
@@ -740,7 +749,7 @@ function openCreate() {
   $("#c-name").focus();
 }
 document.querySelectorAll("[data-open-create]").forEach((b) => b.addEventListener("click", openCreate));
-$("#create-form").addEventListener("submit", (e) => e.preventDefault());
+$("#create-form")?.addEventListener("submit", (e) => e.preventDefault());
 
 function validDraft() {
   const missing = [];
@@ -749,7 +758,7 @@ function validDraft() {
   if (missing.length) { toast(`Add ${missing.join(" and ")} first`); (draft.name.trim() ? $("#c-quote") : $("#c-name")).focus(); return false; }
   return true;
 }
-$("#create-place").addEventListener("click", () => {
+$("#create-place")?.addEventListener("click", () => {
   if (!validDraft()) return;
   const s = draftStory();
   state.mine.push(s);
@@ -765,8 +774,8 @@ $("#create-place").addEventListener("click", () => {
   setTimeout(() => turnTo(card), 300);
   toast("Your story is now on the path");
 });
-$("#create-save").addEventListener("click", () => { if (validDraft()) saveCard(draftStory()); });
-$("#create-share").addEventListener("click", () => { if (validDraft()) shareCard(draftStory(), true); });
+$("#create-save")?.addEventListener("click", () => { if (validDraft()) saveCard(draftStory()); });
+$("#create-share")?.addEventListener("click", () => { if (validDraft()) shareCard(draftStory(), true); });
 
 /* ---------------- sheets: close + escape ---------------- */
 document.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", () => {
@@ -784,8 +793,8 @@ function anySheetOpen() {
 }
 
 /* ---------------- finale ---------------- */
-$("#finale-replay").addEventListener("click", () => $("#finale").classList.remove("is-active"));
-$("#finale-collection").addEventListener("click", () => { $("#finale").classList.remove("is-active"); openCollection(); });
+$("#finale-replay")?.addEventListener("click", () => $("#finale").classList.remove("is-active"));
+$("#finale-collection")?.addEventListener("click", () => { $("#finale").classList.remove("is-active"); openCollection(); });
 
 /* ---------------- deep link: #story=<id> ---------------- */
 function deepLinkStory() {
