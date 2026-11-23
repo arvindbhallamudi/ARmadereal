@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123d";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123d";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123d";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123e";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123e";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123e";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
@@ -56,7 +56,6 @@ const firstName = (n) => n.split(/\s+/)[0];
 /* ---------------- static copy ---------------- */
 $("#tagline").textContent = CAMPAIGN.tagline;
 rich($("#finale-title"), CAMPAIGN.finale.title);
-$("#finale-body").textContent = CAMPAIGN.finale.body;
 setLink($("#finale-primary"), CAMPAIGN.finale.primary);
 setLink($("#finale-secondary"), CAMPAIGN.finale.secondary);
 setLink($("#create-submit"), CAMPAIGN.submit);
@@ -370,7 +369,9 @@ function tap(x, y) {
 
 /* ---------------- where to look next ---------------- */
 function nextCard() {
-  return cards.find((c) => !c.mine && c.mesh.visible && !state.seen.has(c.story.id)) || null;
+  // prefer the newest chapter, then anything left behind on the path
+  const open = cards.filter((c) => !c.mine && c.mesh.visible && !state.seen.has(c.story.id));
+  return open.find((c) => c.chapterIdx === state.chapterIndex) || open[0] || null;
 }
 const fwd = new THREE.Vector3();
 function cameraYaw() { camera.getWorldDirection(fwd); return Math.atan2(-fwd.x, -fwd.z); }
@@ -485,8 +486,9 @@ async function begin(mode) {
   turnTo(cards[0], false);
 
   // returning visitor: restore what they've already collected
-  const doneChapters = CHAPTERS.findIndex((ch) => !STORIES.filter((s) => s.chapter === ch.id).every((s) => state.seen.has(s.id)));
-  const resumeTo = doneChapters === -1 ? CHAPTERS.length - 1 : doneChapters;
+  const firstUnvisited = CHAPTERS.findIndex((ch) => !chapterVisited(ch));
+  const resumeTo = firstUnvisited === -1 ? CHAPTERS.length - 1 : firstUnvisited;
+  if (firstUnvisited === -1) state.finaleShown = true;
   cards.filter((c) => c.mine).forEach((c) => { c.mesh.visible = c.glow.visible = true; c.revealing = true; });
 
   const deep = deepLinkStory();
@@ -565,13 +567,27 @@ function closeStory() {
   advance();
 }
 
+// A chapter counts as visited once at least one of its stories has been opened.
+const chapterVisited = (ch) => STORIES.some((s) => s.chapter === ch.id && state.seen.has(s.id));
+
 function advance() {
-  if (STORIES.every((s) => state.seen.has(s.id))) {
-    if (!state.finaleShown) { state.finaleShown = true; setTimeout(() => $("#finale").classList.add("is-active"), 900); }
+  if (CHAPTERS.every(chapterVisited)) {
+    if (!state.finaleShown) { state.finaleShown = true; setTimeout(showFinale, 900); }
     return;
   }
-  const unlockedDone = cards.filter((c) => !c.mine && c.chapterIdx <= state.chapterIndex).every((c) => state.seen.has(c.story.id));
-  if (unlockedDone && state.chapterIndex < CHAPTERS.length - 1) setTimeout(() => showChapter(state.chapterIndex + 1), 600);
+  const next = state.chapterIndex + 1;
+  if (next < CHAPTERS.length && chapterVisited(CHAPTERS[state.chapterIndex]) && state.pendingChapter !== next) {
+    state.pendingChapter = next;
+    setTimeout(() => showChapter(next), 600);
+  }
+}
+
+function showFinale() {
+  const n = STORIES.filter((s) => state.seen.has(s.id)).length;
+  const left = STORIES.length - n;
+  $("#finale-body").textContent = CAMPAIGN.finale.body.replace("{count}", n) +
+    (left ? ` ${left} more ${left === 1 ? "story is" : "stories are"} still waiting on the path.` : "");
+  $("#finale").classList.add("is-active");
 }
 
 function updateProgress() {

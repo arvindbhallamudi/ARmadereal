@@ -31,7 +31,8 @@ export const CAMPAIGN = {
 
   finale: {
     title: "Real careers are *made* by real people.",
-    body: "You've collected the stories of ten people who made it real at Capgemini. Yours could be next.",
+    // {count} becomes the number of stories this visitor collected
+    body: "You've met {count} of the people who made it real at Capgemini. Yours could be next.",
     primary: { label: "Explore careers at Capgemini", url: "https://www.capgemini.com/careers/" },
     secondary: { label: "See more on LinkedIn", url: "https://www.linkedin.com/feed/hashtag/maderealhere/" },
   },
