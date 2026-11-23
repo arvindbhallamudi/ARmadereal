@@ -16,7 +16,10 @@ glowing cards placed around them in the room (camera view + motion sensors). No 
 6. **Share / save**: every story can be shared or saved as a 1080×1350 card image.
 7. **Add your story**: visitors build their own card (name, role, pillar, quote, illustrated look),
    place it on their path, and save or share it with #MadeRealHere.
-8. **Finale**: careers link, LinkedIn hashtag, and an invitation to add your own story.
+8. **Chapters**: the chip under the top bar (and "Preview the six chapters" on the intro) opens a list of
+   all six chapters with their one-liners, the people in each, and progress. Tap a reached chapter to go there.
+   Each chapter also has a signpost floating above its first card.
+9. **Finale**: careers link, LinkedIn hashtag, and an invitation to add your own story.
 
 In AR mode, **Background: Clear / Soft / Focus** sets how much the camera view is tinted and blurred behind the cards.
 

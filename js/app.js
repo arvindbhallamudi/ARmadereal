@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123e";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123e";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123e";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123f";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123f";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123f";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
@@ -209,7 +209,41 @@ function layout() {
     c.glow.position.copy(c.mesh.position).multiplyScalar(1.05);
     c.node.position.copy(c.mesh.position);
   });
+  placeSignposts();
   buildPath();
+}
+
+/* ---------------- chapter signposts above the first card of each chapter ---------------- */
+const signposts = CHAPTERS.map((ch, ci) => {
+  const c = document.createElement("canvas");
+  c.width = 768; c.height = 128;
+  const x = c.getContext("2d");
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, opacity: 0 }));
+  sprite.scale.set(1.5, 0.25, 1);
+  sprite.renderOrder = 4;
+  sprite.visible = false;
+  world.add(sprite);
+  const draw = () => {
+    x.clearRect(0, 0, 768, 128);
+    x.font = `500 52px Ubuntu, "Segoe UI", sans-serif`;
+    x.textAlign = "center"; x.textBaseline = "middle";
+    const label = `${String(ci + 1).padStart(2, "0")}  ${ch.title.toUpperCase()}`;
+    const w = x.measureText(label).width + 64;
+    x.fillStyle = "rgba(11,21,48,0.72)";
+    x.beginPath(); x.roundRect ? x.roundRect(384 - w / 2, 18, w, 92, 46) : x.rect(384 - w / 2, 18, w, 92); x.fill();
+    x.fillStyle = "#12ABDB";
+    x.fillText(label, 384, 66);
+    t.needsUpdate = true;
+  };
+  return { ch, ci, sprite, draw };
+});
+function placeSignposts() {
+  signposts.forEach((sp) => {
+    sp.card = cards.find((c) => !c.mine && c.chapterIdx === sp.ci);
+    if (sp.card) sp.sprite.position.set(sp.card.mesh.position.x, sp.card.baseY + 0.98, sp.card.mesh.position.z);
+  });
 }
 
 /* ---------------- the path of light ---------------- */
@@ -261,6 +295,7 @@ layout();
 (async () => {
   try { await Promise.all(["300 40px Ubuntu", "500 28px Ubuntu"].map((f) => document.fonts.load(f))); } catch {}
   cards.forEach(drawCard);
+  signposts.forEach((sp) => sp.draw());
   allStories().forEach(loadAvatar);
 })();
 
@@ -460,6 +495,14 @@ function revealChapter(ci, stagger = true) {
     stagger ? setTimeout(go, 500 + i * 450) : go();
   });
   state.chapterIndex = Math.max(state.chapterIndex, ci);
+  updateChip();
+}
+
+function updateChip() {
+  const ci = Math.max(0, state.chapterIndex);
+  $("#chip-num").textContent = `Chapter ${ci + 1} of ${CHAPTERS.length}`;
+  $("#chip-title").textContent = CHAPTERS[ci].title;
+  $("#btn-chapters").hidden = !state.started;
 }
 
 async function showChapter(ci) {
@@ -682,6 +725,59 @@ function openCollection() {
 }
 $("#btn-collection")?.addEventListener("click", openCollection);
 
+/* ---------------- chapters sheet ---------------- */
+function openChapters() {
+  lastFocus = document.activeElement;
+  const list = $("#chapters-list");
+  list.textContent = "";
+  CHAPTERS.forEach((ch, ci) => {
+    const people = STORIES.filter((s) => s.chapter === ch.id);
+    const got = people.filter((s) => state.seen.has(s.id)).length;
+    const unlocked = state.started && ci <= state.chapterIndex;
+    const current = state.started && ci === state.chapterIndex;
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "ch-item" + (current ? " is-current" : "") + (unlocked ? "" : " is-locked");
+    b.disabled = !unlocked;
+    const num = document.createElement("span"); num.className = "ch-num"; num.textContent = String(ci + 1).padStart(2, "0");
+    const body = document.createElement("span"); body.className = "ch-body";
+    const title = document.createElement("span"); title.className = "ch-title"; title.textContent = ch.title;
+    const line = document.createElement("span"); line.className = "ch-line"; rich(line, ch.intro);
+    const meta = document.createElement("span"); meta.className = "ch-meta";
+    const faces = document.createElement("span"); faces.className = "ch-faces";
+    people.forEach((s) => {
+      const f = document.createElement("span");
+      f.className = "ch-face" + (state.seen.has(s.id) ? "" : " is-locked");
+      f.style.background = `linear-gradient(160deg, ${s.scene[0]}, ${s.scene[1]})`;
+      f.innerHTML = avatarSVG(s.look);
+      faces.appendChild(f);
+    });
+    const status = document.createElement("span"); status.className = "ch-status";
+    status.textContent = !state.started ? `${people.length} ${people.length === 1 ? "story" : "stories"}`
+      : !unlocked ? `Unlocks after Chapter ${ci} · ${CHAPTERS[ci - 1].title}`
+      : `${current ? "You are here · " : ""}${got} of ${people.length} collected`;
+    meta.append(faces, status);
+    body.append(title, line, meta);
+    b.append(num, body);
+    b.setAttribute("aria-label", `Chapter ${ci + 1}, ${ch.title}. ${plain(ch.intro)} ${status.textContent}`);
+    if (unlocked) b.addEventListener("click", () => {
+      $("#chapters").hidden = true;
+      const target = cards.find((c) => !c.mine && c.chapterIdx === ci && !state.seen.has(c.story.id)) || cards.find((c) => !c.mine && c.chapterIdx === ci);
+      turnTo(target);
+    });
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+  $("#chapters-sub").textContent = state.started
+    ? "Open one story in a chapter to unlock the next. Tap a chapter you've reached to go there."
+    : "Six pillars, one path. Open one story in a chapter to unlock the next.";
+  $("#chapters").hidden = false;
+  $("#chapters .sheet-close").focus();
+}
+$("#btn-chapters")?.addEventListener("click", openChapters);
+$("#intro-chapters")?.addEventListener("click", openChapters);
+
 /* ---------------- add your own story ---------------- */
 const draft = {
   name: "", role: "", chapter: CHAPTERS[0].id, quote: "",
@@ -749,9 +845,28 @@ function setupCreate() {
     if (t.value === "saree") Object.assign(draft.look.outfit, { accent: "#6b1f2e", accent2: "#c9a24a" });
     if (t.value === "kurta-dupatta") Object.assign(draft.look.outfit, { accent: "#147c8a", accent2: "#c9a24a" });
     if (t.value === "blazer") Object.assign(draft.look.outfit, { accent: "#f4f4f4" });
+    if (t.value === "kurta") Object.assign(draft.look.outfit, { accent2: "#c9a24a" });
   });
-  bind("#c-glasses", (t) => (draft.look.glasses = t.checked ? { color: "#1b1b1b", shape: "square" } : null));
-  bind("#c-bindi", (t) => (draft.look.bindi = t.checked));
+  options($("#c-glasses"), AVATAR_OPTIONS.glasses, "none");
+  options($("#c-earrings"), AVATAR_OPTIONS.earrings, "none");
+  options($("#c-headwear"), AVATAR_OPTIONS.headwear, "none");
+  swatches($("#c-headwearcolor"), AVATAR_OPTIONS.headwearColor, () => draft.look.headwear?.color, (c) => { if (draft.look.headwear) draft.look.headwear.color = c; });
+  bind("#c-glasses", (t) => (draft.look.glasses = t.value === "none" ? null : { color: "#1b1b1b", shape: t.value }));
+  bind("#c-earrings", (t) => (draft.look.earrings = t.value === "none" ? null : { color: "#d4a537", style: t.value }));
+  bind("#c-headwear", (t) => {
+    draft.look.headwear = t.value === "none" ? null : { type: t.value, color: draft.look.headwear?.color || AVATAR_OPTIONS.headwearColor[0] };
+    $("#c-headwear-colors").hidden = !draft.look.headwear;
+    swatches($("#c-headwearcolor"), AVATAR_OPTIONS.headwearColor, () => draft.look.headwear?.color, (c) => { if (draft.look.headwear) draft.look.headwear.color = c; });
+  });
+  const extras = $("#c-extras");
+  AVATAR_OPTIONS.extras.forEach(([key, label]) => {
+    const l = document.createElement("label");
+    const i = document.createElement("input");
+    i.type = "checkbox"; i.id = "c-x-" + key;
+    i.addEventListener("input", () => { draft.look[key] = i.checked; renderPreview(); });
+    l.append(i, " " + label);
+    extras.appendChild(l);
+  });
   bind("#c-smile", (t) => (draft.look.smile = t.checked ? "big" : "soft"));
 }
 setupCreate();
@@ -849,6 +964,14 @@ function frame() {
       // undiscovered stops on the map: small beacons along the dim path
       c.node.visible = true;
       c.node.material.opacity = 0.35 + (reduceMotion ? 0 : Math.sin(t * 1.5 + c.index) * 0.15);
+    }
+  }
+
+  for (const sp of signposts) {
+    sp.sprite.visible = !!sp.card && sp.card.mesh.visible;
+    if (sp.sprite.visible) {
+      sp.sprite.material.opacity = Math.min(1, sp.card.reveal * 1.2);
+      sp.sprite.position.y = sp.card.mesh.position.y + 0.98;
     }
   }
 

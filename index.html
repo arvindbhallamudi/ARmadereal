@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20261123e" />
+  <link rel="stylesheet" href="css/style.css?v=20261123f" />
   <script type="importmap">
     { "imports": { "three": "./vendor/three.module.min.js" } }
   </script>
@@ -33,6 +33,7 @@
       <p class="lede" id="tagline"></p>
       <button id="start-ar" class="btn btn-primary">Start the experience</button>
       <button id="start-virtual" class="btn btn-ghost">Continue without camera</button>
+      <button id="intro-chapters" class="btn btn-link" type="button">Preview the six chapters</button>
       <p class="fineprint" id="ar-note">Uses your camera and motion sensors to place stories around you. Nothing is recorded or uploaded.</p>
       <div id="handoff" class="handoff" hidden>
         <div class="qr" aria-label="QR code to open this experience on your phone"></div>
@@ -58,6 +59,12 @@
         <span class="progress-bar"><span id="progress-fill"></span></span>
       </button>
     </header>
+
+    <button id="btn-chapters" class="chapter-chip" type="button" hidden aria-label="Chapters">
+      <span id="chip-num">Chapter 1 of 6</span>
+      <span id="chip-title">Culture</span>
+      <span class="chip-caret" aria-hidden="true"></span>
+    </button>
 
     <div id="narration" aria-live="polite"></div>
 
@@ -124,6 +131,19 @@
     </article>
   </section>
 
+  <!-- ============ CHAPTERS SHEET ============ -->
+  <section id="chapters" class="sheet" role="dialog" aria-modal="true" aria-labelledby="chapters-title" hidden>
+    <div class="sheet-scrim" data-close></div>
+    <article class="sheet-card">
+      <button class="sheet-close icon-btn" data-close aria-label="Close chapters">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <h2 id="chapters-title">Chapters</h2>
+      <p id="chapters-sub" class="sub">Six pillars, one path. Open one story in a chapter to unlock the next.</p>
+      <ol id="chapters-list" class="ch-list"></ol>
+    </article>
+  </section>
+
   <!-- ============ CREATE SHEET ============ -->
   <section id="create" class="sheet" role="dialog" aria-modal="true" aria-labelledby="create-title" hidden>
     <div class="sheet-scrim" data-close></div>
@@ -151,9 +171,13 @@
           <fieldset class="field"><legend>Hair colour</legend><div id="c-haircolor" class="swatches"></div></fieldset>
           <label class="field"><span>Outfit</span><select id="c-outfit"></select></label>
           <fieldset class="field"><legend>Outfit colour</legend><div id="c-outfitcolor" class="swatches"></div></fieldset>
-          <div class="checks">
-            <label><input type="checkbox" id="c-glasses" /> Glasses</label>
-            <label><input type="checkbox" id="c-bindi" /> Bindi</label>
+          <div class="field-row">
+            <label class="field"><span>Glasses</span><select id="c-glasses"></select></label>
+            <label class="field"><span>Earrings</span><select id="c-earrings"></select></label>
+          </div>
+          <label class="field"><span>Headwear</span><select id="c-headwear"></select></label>
+          <fieldset class="field" id="c-headwear-colors" hidden><legend>Headwear colour</legend><div id="c-headwearcolor" class="swatches"></div></fieldset>
+          <fieldset class="field"><legend>Extras</legend><div class="checks" id="c-extras">
             <label><input type="checkbox" id="c-smile" /> Big smile</label>
           </div>
         </form>
@@ -189,6 +213,6 @@
   <div id="toast" role="status"></div>
 
   <script src="vendor/qrcode.js"></script>
-  <script type="module" src="js/app.js?v=20261123e"></script>
+  <script type="module" src="js/app.js?v=20261123f"></script>
 </body>
 </html>
