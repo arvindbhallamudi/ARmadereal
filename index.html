@@ -10,7 +10,7 @@
   <meta property="og:description" content="Step into the stories of the people who make it real." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <script type="importmap">
     { "imports": { "three": "./vendor/three.module.min.js" } }
@@ -31,6 +31,14 @@
       <button id="start-ar" class="btn btn-primary">Start the experience</button>
       <button id="start-virtual" class="btn btn-ghost">Continue without camera</button>
       <p class="fineprint">Uses your camera and motion sensors to place stories around you. Nothing is recorded or stored.</p>
+      <div id="handoff" class="handoff" hidden>
+        <div class="qr" aria-label="QR code to open this experience on your phone"></div>
+        <div class="handoff-text">
+          <strong>Best in AR on your phone</strong>
+          <span>Point your phone camera at this code, tap the link, then tap <em>Start the experience</em>.</span>
+          <span class="url"></span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -71,8 +79,8 @@
       <button class="sheet-close icon-btn" data-close aria-label="Close story">
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
+      <img id="story-poster" class="story-poster" alt="" />
       <div class="story-head">
-        <div class="story-photo" id="story-photo"></div>
         <div>
           <div class="story-chapter" id="story-chapter"></div>
           <h2 id="story-name"></h2>
@@ -113,6 +121,7 @@
 
   <div id="toast" role="status"></div>
 
+  <script src="vendor/qrcode.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

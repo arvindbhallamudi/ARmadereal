@@ -11,7 +11,7 @@ import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js";
 
 const $ = (s) => document.querySelector(s);
 const DEG = Math.PI / 180;
-const RADIUS = 3.8;
+const RADIUS = 3.4;
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const state = {
@@ -24,9 +24,24 @@ const state = {
   finaleShown: false,
 };
 
+/* *word* -> highlighted span (campaign poster style), built without innerHTML */
+function rich(el, text) {
+  el.textContent = "";
+  text.split(/(\*[^*]+\*)/).forEach((part) => {
+    if (!part) return;
+    if (part.startsWith("*") && part.endsWith("*")) {
+      const s = document.createElement("span");
+      s.className = "hl";
+      s.textContent = part.slice(1, -1);
+      el.appendChild(s);
+    } else el.appendChild(document.createTextNode(part));
+  });
+}
+const plain = (t) => t.replace(/\*/g, "");
+
 /* ---------------- intro text ---------------- */
 $("#tagline").textContent = CAMPAIGN.tagline;
-$("#finale-title").textContent = CAMPAIGN.finale.title;
+rich($("#finale-title"), CAMPAIGN.finale.title);
 $("#finale-body").textContent = CAMPAIGN.finale.body;
 setLink($("#finale-primary"), CAMPAIGN.finale.primary);
 setLink($("#finale-secondary"), CAMPAIGN.finale.secondary);
@@ -109,8 +124,8 @@ function glowTexture(color) {
 }
 
 /* ---------------- story cards ---------------- */
-const CARD_W = 1.05, CARD_H = 1.4;
-const TEX_W = 600, TEX_H = 800;
+const CARD_W = 1.12, CARD_H = 1.4;
+const TEX_W = 640, TEX_H = 800;
 const cards = []; // { story, chapterIdx, mesh, glow, canvas, ctx, tex, baseY, phase, reveal }
 
 function initials(name) {
@@ -143,66 +158,49 @@ function wrap(x, text, maxW) {
 function drawCard(card) {
   const { ctx: x, story } = card;
   const seen = state.seen.has(story.id);
-  const accent = story.accent || "#12ABDB";
+  const img = state.images[story.id];
   x.clearRect(0, 0, TEX_W, TEX_H);
 
-  // glass body
-  roundRect(x, 6, 6, TEX_W - 12, TEX_H - 12, 44);
-  const bg = x.createLinearGradient(0, 0, 0, TEX_H);
-  bg.addColorStop(0, "rgba(22,44,92,0.92)");
-  bg.addColorStop(1, "rgba(8,18,44,0.92)");
-  x.fillStyle = bg;
-  x.fill();
-  x.lineWidth = 4;
-  x.strokeStyle = seen ? "rgba(18,171,219,0.9)" : "rgba(255,255,255,0.28)";
-  x.stroke();
-
-  // photo circle
-  const cx = TEX_W / 2, cy = 250, r = 150;
+  // poster, clipped to a rounded card
   x.save();
-  x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath(); x.clip();
-  const img = state.images[story.id];
+  roundRect(x, 4, 4, TEX_W - 8, TEX_H - 8, 28);
+  x.clip();
   if (img) {
-    const s = Math.max((r * 2) / img.width, (r * 2) / img.height);
+    const s = Math.max(TEX_W / img.width, TEX_H / img.height);
     const w = img.width * s, h = img.height * s;
-    x.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+    x.drawImage(img, (TEX_W - w) / 2, (TEX_H - h) / 2, w, h);
   } else {
-    const g = x.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
-    g.addColorStop(0, story.color || "#0070AD");
-    g.addColorStop(1, "#12ABDB");
+    const g = x.createLinearGradient(0, 0, 0, TEX_H);
+    g.addColorStop(0, "#0070AD");
+    g.addColorStop(1, "#0b1530");
     x.fillStyle = g;
-    x.fillRect(cx - r, cy - r, r * 2, r * 2);
-    x.fillStyle = "rgba(255,255,255,0.95)";
-    x.font = "700 110px Ubuntu, sans-serif";
-    x.textAlign = "center"; x.textBaseline = "middle";
-    x.fillText(initials(story.name), cx, cy + 6);
+    x.fillRect(0, 0, TEX_W, TEX_H);
+    x.fillStyle = "#fff";
+    x.textAlign = "center";
+    x.font = "300 44px Ubuntu, sans-serif";
+    wrap(x, plain(story.quote), TEX_W - 120).slice(0, 6).forEach((l, i) => x.fillText(l, TEX_W / 2, 200 + i * 56));
+    x.font = "500 34px Ubuntu, sans-serif";
+    x.fillText(story.name, TEX_W / 2, 620);
   }
   x.restore();
-  x.beginPath(); x.arc(cx, cy, r + 6, 0, Math.PI * 2);
-  x.lineWidth = 8; x.strokeStyle = accent; x.stroke();
 
-  // text
-  x.textAlign = "center"; x.textBaseline = "alphabetic";
-  x.fillStyle = "#fff";
-  x.font = "700 46px Ubuntu, sans-serif";
-  x.fillText(story.name, cx, 480);
-  x.fillStyle = "rgba(255,255,255,0.7)";
-  x.font = "400 28px Ubuntu, sans-serif";
-  x.fillText(story.role, cx, 522);
+  // frame
+  roundRect(x, 4, 4, TEX_W - 8, TEX_H - 8, 28);
+  x.lineWidth = 6;
+  x.strokeStyle = seen ? "#12ABDB" : "rgba(255,255,255,0.55)";
+  x.stroke();
 
-  x.fillStyle = "rgba(255,255,255,0.92)";
-  x.font = "500 32px Ubuntu, sans-serif";
-  const lines = wrap(x, `“${story.hook}”`, TEX_W - 100).slice(0, 2);
-  lines.forEach((l, i) => x.fillText(l, cx, 600 + i * 42));
-
-  // CTA pill
-  const pw = 300, ph = 62, px = cx - pw / 2, py = 690;
-  roundRect(x, px, py, pw, ph, 31);
-  x.fillStyle = seen ? "rgba(18,171,219,0.18)" : "#12ABDB";
+  // CTA pill, bottom centre (posters keep their own labels bottom-left/right)
+  const label = seen ? "✓ Story heard" : "Tap to open";
+  x.font = "500 26px Ubuntu, sans-serif";
+  const pw = x.measureText(label).width + 56, ph = 54, px = (TEX_W - pw) / 2, py = TEX_H - 96;
+  roundRect(x, px, py, pw, ph, 27);
+  x.fillStyle = seen ? "rgba(11,21,48,0.82)" : "#12ABDB";
   x.fill();
   x.fillStyle = seen ? "#12ABDB" : "#04122b";
-  x.font = "500 28px Ubuntu, sans-serif";
-  x.fillText(seen ? "✓ Story heard" : "Tap to open", cx, py + 41);
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(label, TEX_W / 2, py + ph / 2 + 1);
+  x.textBaseline = "alphabetic";
 
   card.tex.needsUpdate = true;
 }
@@ -212,7 +210,7 @@ const glowTex = glowTexture("#12abdb");
 
 CHAPTERS.forEach((ch, ci) => {
   const list = STORIES.filter((s) => s.chapter === ch.id);
-  const spread = 22; // degrees between cards
+  const spread = 24; // degrees between cards
   list.forEach((story, i) => {
     const yaw = (ch.direction + (i - (list.length - 1) / 2) * spread) * DEG;
     const c = document.createElement("canvas");
@@ -240,12 +238,13 @@ CHAPTERS.forEach((ch, ci) => {
 });
 
 async function loadAssets() {
-  try { await document.fonts.load("700 40px Ubuntu"); await document.fonts.load("400 28px Ubuntu"); } catch {}
-  await Promise.all(STORIES.filter((s) => s.photo).map((s) => new Promise((res) => {
+  try { await Promise.all(["300 40px Ubuntu", "500 28px Ubuntu"].map((f) => document.fonts.load(f))); } catch {}
+  cards.forEach(drawCard);
+  await Promise.all(STORIES.filter((s) => s.poster).map((s) => new Promise((res) => {
     const img = new Image();
-    img.onload = () => { state.images[s.id] = img; res(); };
+    img.onload = () => { state.images[s.id] = img; const c = cards.find((k) => k.story.id === s.id); if (c) drawCard(c); res(); };
     img.onerror = () => res();
-    img.src = s.photo;
+    img.src = s.poster;
   })));
   cards.forEach(drawCard);
 }
@@ -392,7 +391,7 @@ function currentTargetChapter() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const narr = $("#narration");
 async function say(text, hold = 2600) {
-  narr.textContent = text;
+  rich(narr, text);
   narr.classList.add("show");
   await sleep(hold);
   narr.classList.remove("show");
@@ -421,7 +420,7 @@ async function showChapter(ci) {
   const b = $("#chapter-banner");
   b.querySelector(".chapter-num").textContent = `Chapter ${ci + 1} of ${CHAPTERS.length}`;
   b.querySelector(".chapter-title").textContent = ch.title;
-  b.querySelector(".chapter-intro").textContent = ch.intro;
+  rich(b.querySelector(".chapter-intro"), ch.intro);
   b.classList.add("show");
   await sleep(2800);
   b.classList.remove("show");
@@ -465,11 +464,10 @@ $("#start-virtual").addEventListener("click", async () => {
 });
 
 /* ---------------- story sheet ---------------- */
-function avatarStyle(el, story) {
-  const src = story.photo && state.images[story.id] ? story.photo : null;
-  if (src) { el.style.backgroundImage = `url("${src}")`; el.textContent = ""; }
+function thumbStyle(el, story) {
+  if (story.poster) { el.style.backgroundImage = `url("${story.poster}")`; el.textContent = ""; }
   else {
-    el.style.backgroundImage = `linear-gradient(135deg, ${story.color || "#0070AD"}, #12ABDB)`;
+    el.style.backgroundImage = "linear-gradient(135deg, #0070AD, #12ABDB)";
     el.textContent = initials(story.name);
   }
 }
@@ -481,13 +479,16 @@ function openStory(story) {
   lastFocus = document.activeElement;
   const ch = CHAPTERS.find((c) => c.id === story.chapter);
   const ci = CHAPTERS.indexOf(ch);
-  avatarStyle($("#story-photo"), story);
+  const poster = $("#story-poster");
+  poster.hidden = !story.poster;
+  if (story.poster) { poster.src = story.poster; poster.alt = `${story.name}, ${story.role}: “${plain(story.quote)}”`; }
   $("#story-chapter").textContent = `Chapter ${ci + 1} · ${ch.title}`;
   $("#story-name").textContent = story.name;
   $("#story-role").textContent = [story.role, story.team].filter(Boolean).join(" · ");
   $("#story-meta").textContent = [story.location, story.since && `At Capgemini since ${story.since}`].filter(Boolean).join(" · ");
+  $("#story-meta").hidden = !$("#story-meta").textContent;
   $("#story-placeholder").hidden = !story.placeholder;
-  $("#story-quote").textContent = `“${story.quote}”`;
+  rich($("#story-quote"), `“${story.quote}”`);
   const body = $("#story-body");
   body.innerHTML = "";
   (story.story || []).forEach((p) => { const el = document.createElement("p"); el.textContent = p; body.appendChild(el); });
@@ -540,10 +541,10 @@ function openList() {
     STORIES.filter((s) => s.chapter === ch.id).forEach((s) => {
       const b = document.createElement("button");
       b.className = "list-item";
-      const av = document.createElement("span"); av.className = "av"; avatarStyle(av, s);
+      const av = document.createElement("span"); av.className = "av"; thumbStyle(av, s);
       const tx = document.createElement("span"); tx.className = "tx";
       const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = s.name;
-      const hk = document.createElement("div"); hk.className = "hk"; hk.textContent = s.hook;
+      const hk = document.createElement("div"); hk.className = "hk"; hk.textContent = s.role;
       tx.append(nm, hk);
       const ck = document.createElement("span"); ck.className = "ck"; ck.textContent = state.seen.has(s.id) ? "✓" : "";
       b.append(av, tx, ck);
@@ -650,6 +651,20 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+/* ---------------- desktop: hand off to phone ---------------- */
+(function phoneHandoff() {
+  const isPhone = matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
+  const box = $("#handoff");
+  if (isPhone || !box || typeof window.qrcode !== "function") return;
+  const url = CAMPAIGN.liveUrl || new URL("./", location.href).href;
+  box.querySelector(".url").textContent = url.replace(/^https:\/\//, "");
+  const qr = window.qrcode(0, "M");
+  qr.addData(url);
+  qr.make();
+  box.querySelector(".qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  box.hidden = false;
+})();
 
 // Deep link for testing: ?skip skips the intro in virtual mode
 if (new URLSearchParams(location.search).has("skip")) begin("virtual");
