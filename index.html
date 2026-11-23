@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20261123g" />
+  <link rel="stylesheet" href="css/style.css?v=20261123h" />
   <script type="importmap">
     { "imports": { "three": "./vendor/three.module.min.js" } }
   </script>
@@ -108,7 +108,10 @@
         <button id="story-share" class="btn btn-ghost btn-sm">Share</button>
         <button id="story-save" class="btn btn-ghost btn-sm">Save card</button>
       </div>
-      <button id="story-delete" class="btn btn-link" hidden>Remove my story</button>
+      <div class="row-btns" id="story-mine-actions" hidden>
+        <button id="story-edit" class="btn btn-ghost btn-sm">Edit my story</button>
+        <button id="story-delete" class="btn btn-link">Remove my story</button>
+      </div>
       <button class="btn btn-primary btn-block" data-close id="story-continue">Continue the journey</button>
     </article>
   </section>
@@ -212,6 +215,6 @@
   <div id="toast" role="status"></div>
 
   <script src="vendor/qrcode.js"></script>
-  <script type="module" src="js/app.js?v=20261123g"></script>
+  <script type="module" src="js/app.js?v=20261123h"></script>
 </body>
 </html>

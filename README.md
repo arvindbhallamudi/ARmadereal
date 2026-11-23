@@ -15,7 +15,7 @@ glowing cards placed around them in the room (camera view + motion sensors). No 
 5. **Collect**: opening a story adds it to *My collection* (kept on the device). Undiscovered people show as silhouettes.
 6. **Share / save**: every story can be shared or saved as a 1080×1350 card image.
 7. **Add your story**: visitors build their own card (name, role, pillar, quote, illustrated look),
-   place it on their path, and save or share it with #MadeRealHere.
+   place it on their path, and save or share it with #MadeRealHere. They can edit or remove it later from the story card.
 8. **Chapters**: the Chapters button in the bottom bar (and "Preview the six chapters" on the intro) opens a list of
    all six chapters with their one-liners, the people in each, and progress. Tap a reached chapter to go there.
 9. **Finale**: careers link, LinkedIn hashtag, and an invitation to add your own story.

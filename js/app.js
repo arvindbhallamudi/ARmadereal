@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123g";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123g";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123g";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123h";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123h";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123h";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
@@ -556,7 +556,7 @@ function openStory(card) {
   const willCollect = !card.mine && !state.seen.has(s.id);
   $("#story-collected").hidden = card.mine;
   $("#story-collected").textContent = willCollect ? `Added to your collection · ${state.seen.size + 1} of ${STORIES.length}` : "In your collection";
-  $("#story-delete").hidden = !card.mine;
+  $("#story-mine-actions").hidden = !card.mine;
   const remaining = STORIES.filter((x) => !state.seen.has(x.id) && x.id !== s.id).length;
   $("#story-continue").textContent = card.mine ? "Back to the path" : remaining ? "Continue the journey" : "Finish the journey";
   $("#story").hidden = false;
@@ -742,17 +742,19 @@ $("#btn-chapters")?.addEventListener("click", openChapters);
 $("#intro-chapters")?.addEventListener("click", openChapters);
 
 /* ---------------- add your own story ---------------- */
-const draft = {
+const freshDraft = () => ({
   name: "", role: "", chapter: CHAPTERS[0].id, quote: "",
-  look: { skin: AVATAR_OPTIONS.skin[2], hair: "short", hairColor: AVATAR_OPTIONS.hairColor[0], beard: "none", glasses: null,
+  look: { skin: AVATAR_OPTIONS.skin[3], hair: "short", hairColor: AVATAR_OPTIONS.hairColor[0], beard: "none", glasses: null,
           outfit: { type: "tshirt", color: AVATAR_OPTIONS.outfitColor[0] }, smile: "soft" },
-};
+});
+const draft = freshDraft();
+let editingId = null; // id of the visitor's story being edited, or null when adding
 const previewCanvas = $("#create-preview");
 let previewAvatar = null, previewTimer;
 
 function draftStory() {
   return {
-    id: "mine-" + Date.now(), chapter: draft.chapter,
+    id: editingId || "mine-" + Date.now(), chapter: draft.chapter,
     name: draft.name.trim() || "Your name",
     role: draft.role.trim() || "Your role",
     quote: draft.quote.trim() ? `“${draft.quote.trim().replace(/^["“]|["”]$/g, "")}”` : "“Write the moment you *made it real*.”",
@@ -834,15 +836,61 @@ function setupCreate() {
 }
 setupCreate();
 
-function openCreate() {
+/* Put the current draft into every control of the form */
+function fillForm() {
+  const L = draft.look;
+  $("#c-name").value = draft.name;
+  $("#c-role").value = draft.role;
+  $("#c-quote").value = draft.quote;
+  $("#c-quote-count").textContent = `${draft.quote.length} / 140`;
+  $("#c-pillar").value = draft.chapter;
+  $("#c-hair").value = L.hair || "short";
+  $("#c-beard").value = L.beard || "none";
+  $("#c-outfit").value = L.outfit?.type || "tshirt";
+  $("#c-glasses").value = L.glasses?.shape || "none";
+  $("#c-earrings").value = L.earrings?.style || "none";
+  $("#c-headwear").value = L.headwear?.type || "none";
+  $("#c-headwear-colors").hidden = !L.headwear;
+  $("#c-smile").checked = L.smile === "big";
+  AVATAR_OPTIONS.extras.forEach(([key]) => { const i = $("#c-x-" + key); if (i) i.checked = !!L[key]; });
+  swatches($("#c-skin"), AVATAR_OPTIONS.skin, () => draft.look.skin, (c) => (draft.look.skin = c));
+  swatches($("#c-haircolor"), AVATAR_OPTIONS.hairColor, () => draft.look.hairColor, (c) => (draft.look.hairColor = c));
+  swatches($("#c-outfitcolor"), AVATAR_OPTIONS.outfitColor, () => draft.look.outfit.color, (c) => (draft.look.outfit.color = c));
+  swatches($("#c-headwearcolor"), AVATAR_OPTIONS.headwearColor, () => draft.look.headwear?.color, (c) => { if (draft.look.headwear) draft.look.headwear.color = c; });
+}
+
+function openCreate(story) {
   lastFocus = document.activeElement;
+  const editing = story && story.id;
+  if (editing) {
+    editingId = story.id;
+    Object.assign(draft, freshDraft(), {
+      name: story.name, role: story.role, chapter: story.chapter,
+      quote: story.quote.replace(/^\s*[“"]|[”"]\s*$/g, ""),
+      look: { ...freshDraft().look, ...JSON.parse(JSON.stringify(story.look)) },
+    });
+  } else if (editingId) {
+    // coming back from an edit: start a new story from a clean form
+    editingId = null;
+    Object.assign(draft, freshDraft());
+  }
+  fillForm();
+  $("#create-title").textContent = editing ? "Edit your story" : "Add your story";
+  $("#create-place").textContent = editing ? "Save changes" : "Place it on my path";
+  $("#story").hidden = true;
   $("#collection").hidden = true;
   $("#finale").classList.remove("is-active");
   $("#create").hidden = false;
   renderPreview();
   $("#c-name").focus();
 }
-document.querySelectorAll("[data-open-create]").forEach((b) => b.addEventListener("click", openCreate));
+document.querySelectorAll("[data-open-create]").forEach((b) => b.addEventListener("click", () => openCreate()));
+$("#story-edit")?.addEventListener("click", () => {
+  const card = openCard;
+  if (!card?.mine) return;
+  openCard = null;
+  openCreate(card.story);
+});
 $("#create-form")?.addEventListener("submit", (e) => e.preventDefault());
 
 function validDraft() {
@@ -855,6 +903,25 @@ function validDraft() {
 $("#create-place")?.addEventListener("click", () => {
   if (!validDraft()) return;
   const s = draftStory();
+  if (editingId) {
+    const i = state.mine.findIndex((m) => m.id === editingId);
+    const card = cards.find((c) => c.mine && c.story.id === editingId);
+    if (i !== -1 && card) {
+      state.mine[i] = s;
+      store.set("mine", state.mine);
+      card.story = s;
+      delete state.avatars[s.id];
+      drawCard(card);
+      loadAvatar(s);
+      editingId = null;
+      Object.assign(draft, freshDraft());
+      $("#create").hidden = true;
+      setTimeout(() => turnTo(card), 200);
+      toast("Your story was updated");
+      return;
+    }
+    editingId = null; // the story no longer exists: fall through and add it as new
+  }
   state.mine.push(s);
   store.set("mine", state.mine);
   const card = makeCard(s, true);
