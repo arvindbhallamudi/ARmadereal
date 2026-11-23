@@ -6,31 +6,41 @@ glowing cards placed around them in the room (camera view + motion sensors). No 
 
 ## The journey
 
-1. **Intro** — `#MadeRealHere`, start with camera or without.
-2. **Prologue** — three short narrative lines appear over the camera view.
-3. **Chapters** — *The Spark → The Build → The Impact*. Each chapter's stories appear in a
-   different direction around the viewer; arrows guide them to turn and find the next ones.
-4. **Story sheet** — photo, name, role, quote and story. Closing it marks the story as heard.
-5. **Finale** — call to action (careers / share your story).
+1. **Intro**: `#MadeRealHere`, start with camera (AR) or without (virtual space).
+2. **Prologue**: three short lines over the camera view.
+3. **Path of light**: ten story cards sit on a glowing path that winds around the viewer.
+   Chapters follow the campaign pillars: Culture → Growth → Pride → Innovation → Purpose → Impact.
+   Undiscovered stops show as small beacons; the path lights up as each chapter unlocks.
+4. **Guide**: when the next story is off-screen, a "Turn left / Turn right" pill points to it (tap it to turn there).
+5. **Collect**: opening a story adds it to *My collection* (kept on the device). Undiscovered people show as silhouettes.
+6. **Share / save**: every story can be shared or saved as a 1080×1350 card image.
+7. **Add your story**: visitors build their own card (name, role, pillar, quote, illustrated look),
+   place it on their path, and save or share it with #MadeRealHere.
+8. **Finale**: careers link, LinkedIn hashtag, and an invitation to add your own story.
 
-There's also an **All stories** list (top-right menu) so every story is reachable without AR.
+In AR mode, **Background: Clear / Soft / Focus** sets how much the camera view is tinted and blurred behind the cards.
 
 ## Works on
 
-- iPhone (Safari 13+) and Android (Chrome) — camera + gyroscope.
-- Desktop — drag (or arrow keys) to look around a virtual space.
+- iPhone (Safari 13+) and Android (Chrome), with camera + motion sensors.
+- Desktop: drag (or arrow keys) to look around; the intro shows a QR code to open it on a phone.
 - Must be served over **HTTPS** (GitHub Pages is) for camera access.
 
-## Adding the real stories
+## Editing the stories
 
 Everything editable lives in **`js/stories.js`**:
 
-- `CAMPAIGN` — prologue lines, finale text and CTA links.
-- `CHAPTERS` — chapter titles, intros and where they sit around the viewer.
-- `STORIES` — one entry per person. Set `placeholder: false` to remove the "Placeholder" tag.
+- `CAMPAIGN`: prologue lines, finale text and links, logo path, optional `submit` link for user stories.
+- `CHAPTERS`: pillar titles and intro lines, in path order.
+- `STORIES`: one entry per person: name, role, quote (wrap words in `*stars*` to highlight),
+  `scene` (two background colours), and `look` (portrait traits, options listed in `js/avatar.js`).
 
-Photos go in `assets/people/` (square JPGs, ~800×800, under 300 KB each) and are referenced as
-`photo: "assets/people/name.jpg"`. Optional `video: "assets/people/name.mp4"` adds a clip to the story.
+No photos are used; portraits are illustrated from `look`.
+
+## Brand files
+
+Put the official white Capgemini logo at `assets/brand/capgemini-logo-white.svg`.
+It then appears on the intro/final screens, the top bar and every card.
 
 ## QR code
 

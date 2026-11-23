@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1530" />
-  <title>#MadeRealHere — Capgemini</title>
-  <meta name="description" content="An augmented reality experience sharing the stories of the people who make it real at Capgemini." />
-  <meta property="og:title" content="#MadeRealHere" />
-  <meta property="og:description" content="Step into the stories of the people who make it real." />
+  <title>#MadeRealHere | Capgemini</title>
+  <meta name="description" content="Step into the stories of the people who make it real at Capgemini. An augmented reality experience." />
+  <meta property="og:title" content="#MadeRealHere | Capgemini" />
+  <meta property="og:description" content="Follow the path of light and collect the stories of the people who make it real." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
@@ -17,20 +17,22 @@
   </script>
 </head>
 <body>
-  <!-- Camera feed (AR mode) sits behind the 3D canvas -->
+  <!-- Camera feed (AR) sits behind a translucent veil and the 3D canvas -->
   <video id="camera" playsinline muted autoplay></video>
+  <div id="veil" aria-hidden="true"></div>
   <div id="virtual-bg" aria-hidden="true"></div>
-  <canvas id="scene" aria-label="Augmented reality story space"></canvas>
+  <canvas id="scene" aria-label="Augmented reality story path"></canvas>
 
   <!-- ============ INTRO ============ -->
   <section id="intro" class="screen is-active">
     <div class="intro-inner">
-      <p class="eyebrow">Capgemini presents</p>
+      <img class="brand-logo" data-logo alt="Capgemini" hidden />
+      <p class="eyebrow brand-fallback">Capgemini presents</p>
       <h1 class="hashtag"><span>#Made</span><span>Real</span><span>Here</span></h1>
       <p class="lede" id="tagline"></p>
       <button id="start-ar" class="btn btn-primary">Start the experience</button>
       <button id="start-virtual" class="btn btn-ghost">Continue without camera</button>
-      <p class="fineprint">Uses your camera and motion sensors to place stories around you. Nothing is recorded or stored.</p>
+      <p class="fineprint">Uses your camera and motion sensors to place stories around you. Nothing is recorded or uploaded.</p>
       <div id="handoff" class="handoff" hidden>
         <div class="qr" aria-label="QR code to open this experience on your phone"></div>
         <div class="handoff-text">
@@ -40,18 +42,20 @@
         </div>
       </div>
     </div>
+    <div class="brand-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
   </section>
 
   <!-- ============ HUD ============ -->
   <div id="hud" hidden>
     <header class="hud-top">
-      <div class="hud-brand">#MadeRealHere</div>
-      <div class="hud-progress" aria-live="polite">
-        <span id="progress-text">0 / 6</span>
-        <div class="progress-bar"><div id="progress-fill"></div></div>
+      <div class="hud-brand">
+        <img class="hud-logo" data-logo alt="Capgemini" hidden />
+        <span>#MadeRealHere</span>
       </div>
-      <button id="btn-list" class="icon-btn" aria-label="All stories">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <button id="btn-collection" class="collect-btn" aria-label="My collection">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="8" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="8" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span id="progress-text">0 / 10</span>
+        <span class="progress-bar"><span id="progress-fill"></span></span>
       </button>
     </header>
 
@@ -63,60 +67,124 @@
       <div class="chapter-intro"></div>
     </div>
 
-    <div id="guide-left" class="guide" aria-hidden="true"><span>‹</span></div>
-    <div id="guide-right" class="guide" aria-hidden="true"><span>›</span></div>
+    <button id="guide" class="guide" type="button">
+      <span class="guide-arrow" aria-hidden="true"></span>
+      <span id="guide-label"></span>
+    </button>
     <div id="hint" class="hint"></div>
 
     <footer class="hud-bottom">
-      <button id="btn-recenter" class="pill-btn">Recenter</button>
+      <button id="btn-veil" class="pill-btn" hidden>Background: Soft</button>
+      <button id="btn-recenter" class="pill-btn">Show next story</button>
+      <button class="pill-btn pill-accent" data-open-create>+ Your story</button>
     </footer>
   </div>
 
-  <!-- ============ STORY PANEL ============ -->
+  <!-- ============ STORY SHEET ============ -->
   <section id="story" class="sheet" role="dialog" aria-modal="true" aria-labelledby="story-name" hidden>
     <div class="sheet-scrim" data-close></div>
     <article class="sheet-card">
       <button class="sheet-close icon-btn" data-close aria-label="Close story">
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <img id="story-poster" class="story-poster" alt="" />
-      <div class="story-head">
-        <div>
+      <div class="story-top">
+        <div id="story-avatar" class="story-avatar" aria-hidden="true"></div>
+        <div class="story-who">
           <div class="story-chapter" id="story-chapter"></div>
           <h2 id="story-name"></h2>
           <p class="story-role" id="story-role"></p>
-          <p class="story-meta" id="story-meta"></p>
         </div>
       </div>
-      <span class="placeholder-tag" id="story-placeholder">Placeholder content</span>
       <blockquote id="story-quote"></blockquote>
       <div id="story-body" class="story-body"></div>
+      <p id="story-collected" class="collected-note"></p>
+      <div class="row-btns">
+        <button id="story-share" class="btn btn-ghost btn-sm">Share</button>
+        <button id="story-save" class="btn btn-ghost btn-sm">Save card</button>
+      </div>
+      <button id="story-delete" class="btn btn-link" hidden>Remove my story</button>
       <button class="btn btn-primary btn-block" data-close id="story-continue">Continue the journey</button>
     </article>
   </section>
 
-  <!-- ============ STORY LIST ============ -->
-  <section id="list" class="sheet" role="dialog" aria-modal="true" aria-label="All stories" hidden>
+  <!-- ============ COLLECTION SHEET ============ -->
+  <section id="collection" class="sheet" role="dialog" aria-modal="true" aria-labelledby="collection-title" hidden>
     <div class="sheet-scrim" data-close></div>
     <article class="sheet-card">
-      <button class="sheet-close icon-btn" data-close aria-label="Close list">
+      <button class="sheet-close icon-btn" data-close aria-label="Close collection">
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <h2>All stories</h2>
-      <div id="list-body"></div>
+      <h2 id="collection-title">My collection</h2>
+      <p id="collection-count" class="sub"></p>
+      <div id="collection-grid" class="tile-grid"></div>
+      <h3 class="section-label">Your stories</h3>
+      <p id="mine-empty" class="sub">What did you make real here? Create your own card and place it on the path.</p>
+      <div id="mine-grid" class="tile-grid"></div>
+      <button class="btn btn-primary btn-block" data-open-create>+ Add your story</button>
+    </article>
+  </section>
+
+  <!-- ============ CREATE SHEET ============ -->
+  <section id="create" class="sheet" role="dialog" aria-modal="true" aria-labelledby="create-title" hidden>
+    <div class="sheet-scrim" data-close></div>
+    <article class="sheet-card sheet-wide">
+      <button class="sheet-close icon-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <h2 id="create-title">Add your story</h2>
+      <p class="sub">Make your own #MadeRealHere card. It stays on this device. Share it to bring it to the campaign.</p>
+      <div class="create-layout">
+        <canvas id="create-preview" class="create-preview" width="640" height="800" aria-label="Preview of your card"></canvas>
+        <form id="create-form" class="create-form" novalidate>
+          <label class="field"><span>Name</span><input id="c-name" maxlength="40" autocomplete="name" /></label>
+          <label class="field"><span>Role</span><input id="c-role" maxlength="60" autocomplete="organization-title" /></label>
+          <label class="field"><span>Pillar</span><select id="c-pillar"></select></label>
+          <label class="field"><span>Your quote</span>
+            <textarea id="c-quote" rows="3" maxlength="140" placeholder="The moment I made it real was…"></textarea>
+            <small><span id="c-quote-count">0 / 140</span> · Wrap a word in *stars* to highlight it in blue</small>
+          </label>
+          <fieldset class="field"><legend>Skin tone</legend><div id="c-skin" class="swatches"></div></fieldset>
+          <div class="field-row">
+            <label class="field"><span>Hair</span><select id="c-hair"></select></label>
+            <label class="field"><span>Beard</span><select id="c-beard"></select></label>
+          </div>
+          <fieldset class="field"><legend>Hair colour</legend><div id="c-haircolor" class="swatches"></div></fieldset>
+          <label class="field"><span>Outfit</span><select id="c-outfit"></select></label>
+          <fieldset class="field"><legend>Outfit colour</legend><div id="c-outfitcolor" class="swatches"></div></fieldset>
+          <div class="checks">
+            <label><input type="checkbox" id="c-glasses" /> Glasses</label>
+            <label><input type="checkbox" id="c-bindi" /> Bindi</label>
+            <label><input type="checkbox" id="c-smile" /> Big smile</label>
+          </div>
+        </form>
+      </div>
+      <div class="create-actions">
+        <button id="create-place" class="btn btn-primary">Place it on my path</button>
+        <div class="row-btns">
+          <button id="create-share" class="btn btn-ghost btn-sm">Share</button>
+          <button id="create-save" class="btn btn-ghost btn-sm">Save image</button>
+        </div>
+        <a id="create-submit" class="btn btn-link" target="_blank" rel="noopener" hidden></a>
+      </div>
     </article>
   </section>
 
   <!-- ============ FINALE ============ -->
   <section id="finale" class="screen">
     <div class="intro-inner">
+      <img class="brand-logo" data-logo alt="Capgemini" hidden />
       <h1 class="hashtag small"><span>#Made</span><span>Real</span><span>Here</span></h1>
       <h2 id="finale-title"></h2>
       <p class="lede" id="finale-body"></p>
       <a id="finale-primary" class="btn btn-primary" target="_blank" rel="noopener"></a>
+      <button class="btn btn-ghost" data-open-create>Add your own story</button>
       <a id="finale-secondary" class="btn btn-ghost" target="_blank" rel="noopener"></a>
-      <button id="finale-replay" class="btn btn-link">Look around again</button>
+      <div class="row-btns">
+        <button id="finale-collection" class="btn btn-link">View my collection</button>
+        <button id="finale-replay" class="btn btn-link">Look around again</button>
+      </div>
     </div>
+    <div class="brand-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
   </section>
 
   <div id="toast" role="status"></div>
