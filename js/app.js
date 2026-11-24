@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261123i";
-import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261123i";
-import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261123i";
+import { CAMPAIGN, CHAPTERS, STORIES } from "./stories.js?v=20261124a";
+import { avatarSVG, avatarImage, AVATAR_OPTIONS } from "./avatar.js?v=20261124a";
+import { drawStoryCard, CARD_BASE_W, CARD_BASE_H } from "./card.js?v=20261124a";
 
 /* =====================================================================
    #MadeRealHere — browser AR experience
@@ -92,14 +92,22 @@ const world = new THREE.Group(); // rotated to recenter
 scene.add(world);
 
 function resize() {
-  const w = innerWidth, h = innerHeight;
+  // size from the canvas itself (not innerWidth/innerHeight) so taps line up with what is drawn on every phone
+  const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.fov = w < h ? 75 : 55;
   camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
+addEventListener("orientationchange", () => setTimeout(resize, 250));
+window.visualViewport?.addEventListener("resize", resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
 resize();
+// iOS can leave the page scrolled after the keyboard closes, pushing the top bar under the notch
+const unscroll = () => { if (scrollY || document.documentElement.scrollTop) scrollTo(0, 0); };
+addEventListener("scroll", unscroll, { passive: true });
+document.addEventListener("focusout", () => setTimeout(unscroll, 60));
 const hfov = () => 2 * Math.atan(Math.tan((camera.fov * DEG) / 2) * camera.aspect);
 
 function glowTexture(color) {
@@ -337,19 +345,28 @@ function applyGyro() {
 const look = { yaw: 0, pitch: 0, tYaw: 0, tPitch: 0 };
 let drag = null;
 canvas.addEventListener("pointerdown", (e) => {
-  drag = { x: e.clientX, y: e.clientY, moved: 0 };
-  canvas.setPointerCapture(e.pointerId);
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: 0 };
+  try { canvas.setPointerCapture(e.pointerId); } catch {}
 });
 canvas.addEventListener("pointermove", (e) => {
-  if (!drag) return;
+  if (!drag || e.pointerId !== drag.id) return;
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   drag.x = e.clientX; drag.y = e.clientY;
-  drag.moved += Math.abs(dx) + Math.abs(dy);
+  drag.moved = Math.max(drag.moved, Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy));
+  if (drag.moved < 8) return; // ignore finger wobble so a tap doesn't turn the view
   const k = 0.0045;
   if (state.gyro) yawOffset += dx * k;
   else { look.tYaw += dx * k; look.tPitch = THREE.MathUtils.clamp(look.tPitch + dy * k, -1.1, 1.1); }
 });
-canvas.addEventListener("pointerup", (e) => { if (drag && drag.moved < 10) tap(e.clientX, e.clientY); drag = null; });
+// Open cards on "click", not pointerup: phones fire a click right after the finger lifts, and if the
+// story panel were already open that click would land on its backdrop and close it straight away.
+let tapOk = false;
+var sheetOpenedAt = 0;
+canvas.addEventListener("pointerup", (e) => {
+  tapOk = !!drag && e.pointerId === drag.id && drag.moved < 18 && performance.now() - drag.t < 800;
+  drag = null;
+});
+canvas.addEventListener("click", (e) => { if (tapOk) tap(e.clientX, e.clientY); tapOk = false; });
 canvas.addEventListener("pointercancel", () => (drag = null));
 addEventListener("keydown", (e) => {
   if (!state.started || anySheetOpen()) return;
@@ -357,15 +374,42 @@ addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") look.tYaw -= 0.3;
 });
 
-const raycaster = new THREE.Raycaster();
-const ndc = new THREE.Vector2();
+/* Tap anywhere on a card (plus a small margin) to open it: test against each card's on-screen outline. */
+const corner = new THREE.Vector3();
+const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+function cardScreenBox(c, rect) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, depth = 0;
+  for (const [sx, sy] of CORNERS) {
+    corner.set((sx * CARD_W) / 2, (sy * CARD_H) / 2, 0).applyMatrix4(c.mesh.matrixWorld);
+    const d = corner.clone().applyMatrix4(camera.matrixWorldInverse).z;
+    if (d > -0.05) return null; // behind the viewer
+    depth += d;
+    corner.project(camera);
+    const px = rect.left + ((corner.x + 1) / 2) * rect.width, py = rect.top + ((1 - corner.y) / 2) * rect.height;
+    x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+  }
+  return { x0, y0, x1, y1, depth };
+}
+function cardAt(x, y, pad = 14) {
+  const rect = canvas.getBoundingClientRect();
+  camera.updateMatrixWorld();
+  let best = null;
+  for (const c of cards) {
+    if (!c.mesh.visible || c.reveal < 0.3) continue;
+    c.mesh.updateMatrixWorld();
+    const b = cardScreenBox(c, rect);
+    if (!b || x < b.x0 - pad || x > b.x1 + pad || y < b.y0 - pad || y > b.y1 + pad) continue;
+    if (!best || b.depth > best.depth) best = { c, depth: b.depth }; // nearest card wins
+  }
+  return best?.c || null;
+}
 function tap(x, y) {
   if (!state.started || anySheetOpen()) return;
-  ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
-  raycaster.setFromCamera(ndc, camera);
-  const hits = raycaster.intersectObjects(cards.filter((c) => c.mesh.visible).map((c) => c.mesh));
-  if (hits[0]) openStory(hits[0].object.userData.card);
+  const c = cardAt(x, y);
+  if (c) openStory(c);
 }
+canvas.style.cursor = "grab";
+canvas.addEventListener("mousemove", (e) => { if (!drag) canvas.style.cursor = state.started && cardAt(e.clientX, e.clientY, 0) ? "pointer" : "grab"; });
 
 /* ---------------- where to look next ---------------- */
 function nextCard() {
@@ -448,6 +492,8 @@ function hint(text, ms = 3800) {
 let toastTimer;
 function toast(text) {
   const t = $("#toast");
+  // never sit on top of the chapter announcement: wait for it to go
+  if ($("#chapter-banner")?.classList.contains("show")) { clearTimeout(toastTimer); toastTimer = setTimeout(() => toast(text), 300); return; }
   t.textContent = text;
   t.classList.add("show");
   clearTimeout(toastTimer);
@@ -474,6 +520,7 @@ async function showChapter(ci) {
   b.querySelector(".chapter-num").textContent = `Chapter ${ci + 1} of ${CHAPTERS.length}`;
   b.querySelector(".chapter-title").textContent = ch.title;
   rich(b.querySelector(".chapter-intro"), ch.intro);
+  $("#toast").classList.remove("show"); // the announcement takes the stage
   b.classList.add("show");
   revealChapter(ci);
   await sleep(3200);
@@ -940,6 +987,7 @@ $("#create-share")?.addEventListener("click", () => { if (validDraft()) shareCar
 
 /* ---------------- sheets: close + escape ---------------- */
 document.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", () => {
+  if (el.classList.contains("sheet-scrim") && performance.now() - sheetOpenedAt < 450) return; // ignore a stray tap from opening
   const sheet = el.closest(".sheet");
   if (sheet.id === "story") closeStory();
   else { sheet.hidden = true; lastFocus?.focus?.(); }
@@ -1035,3 +1083,12 @@ requestAnimationFrame(frame);
 
 // ?skip jumps straight into the virtual space (testing / kiosk use)
 if (new URLSearchParams(location.search).has("skip")) begin("virtual");
+
+// let CSS know when a panel is up (the toast then sits at the top instead of under the bar)
+(() => {
+  const sync = () => { sheetOpenedAt = performance.now(); syncClass(); };
+  const syncClass = () => document.body.classList.toggle("sheet-open", [...document.querySelectorAll(".sheet")].some((s) => !s.hidden));
+  const mo = new MutationObserver(sync);
+  document.querySelectorAll(".sheet").forEach((s) => mo.observe(s, { attributes: true, attributeFilter: ["hidden"] }));
+})();
+if (new URLSearchParams(location.search).has("debug")) window.__mrh = { cards, toast, openStory, openChapters, openCollection, openCreate, showChapter, showFinale, cardBox: (c) => cardScreenBox(c, canvas.getBoundingClientRect()) };
